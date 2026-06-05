@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Vendas</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f4f6f9; display: flex; }
+        #sidebar { width: 250px; background-color: #1e293b; color: white; height: 100vh; padding: 20px; }
+        #sidebar h2 { margin-bottom: 30px; font-size: 20px; text-align: center; }
+        .nav-btn { display: block; width: 100%; padding: 12px; background: none; border: none; color: #94a3b8; text-align: left; font-size: 16px; cursor: pointer; border-radius: 6px; margin-bottom: 10px; }
+        .nav-btn.active, .nav-btn:hover { background-color: #334155; color: white; }
+        #content { flex: 1; padding: 40px; overflow-y: auto; height: 100vh; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h3 { margin-bottom: 20px; color: #1e293b; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        button.btn { background-color: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        button.btn:hover { background-color: #1d4ed8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; color: #64748b; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .badge-pendente { background: #fef3c7; color: #d97706; }
+        .badge-entregue { background: #dcfce7; color: #15803d; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Meu Painel</h2>
+        <button class="nav-btn active" onclick="showSection('clientes')">Clientes & Endereços</button>
+        <button class="nav-btn" onclick="showSection('pedidos')">Novo Pedido</button>
+        <button class="nav-btn" onclick="showSection('historico')">Histórico de Pedidos</button>
+    </div>
+
+    <div id="content">
+        <div id="sec-clientes" class="section">
+            <div class="card">
+                <h3>Cadastrar Cliente e Endereço</h3>
+                <div class="form-group">
+                    <label>Nome do Cliente</label>
+                    <input type="text" id="cli-nome" placeholder="Ex: Maria Souza">
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp</label>
+                    <input type="text" id="cli-whats" placeholder="(11) 99999-9999">
+                </div>
+                <div class="form-group">
+                    <label>Endereço de Entrega</label>
+                    <input type="text" id="cli-end" placeholder="Rua, Número, Bairro e Cidade">
+                </div>
+                <button class="btn" onclick="salvarCliente()">Salvar Cliente</button>
+            </div>
+
+            <div class="card">
+                <h3>Clientes Cadastrados</h3>
+                <table id="tab-clientes">
+                    <thead>
+                        <tr><th>Nome</th><th>WhatsApp</th><th>Endereço Atual</th><th>Ações</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sec-pedidos" class="section" style="display:none;">
+            <div class="card">
+                <h3>Registrar Novo Pedido</h3>
+                <div class="form-group">
+                    <label>Selecione o Cliente</label>
+                    <select id="ped-cliente" onchange="atualizarEnderecoPedido()"></select>
+                </div>
+                <div class="form-group">
+                    <label>Endereço para ESTA entrega (Pode alterar se o cliente mudou)</label>
+                    <input type="text" id="ped-end">
+                </div>
+                <div class="form-group">
+                    <label>Detalhes do Pedido (Produtos)</label>
+                    <input type="text" id="ped-detalhes" placeholder="Ex: 2x Hamburguer + 1x Batata">
+                </div>
+                <div class="form-group">
+                    <label>Valor Total (R$)</label>
+                    <input type="number" id="ped-valor" placeholder="0.00">
+                </div>
+                <button class="btn" onclick="salvarPedido()">Confirmar Pedido</button>
+            </div>
+        </div>
+
+        <div id="sec-historico" class="section" style="display:none;">
+            <div class="card">
+                <h3>Histórico Geral de Pedidos</h3>
+                <table id="tab-pedidos">
+                    <thead>
+                        <tr><th>Cliente</th><th>Produtos</th><th>Endereço de Entrega</th><th>Valor</th><th>Status</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Banco de dados na memória do navegador
+        let clientes = JSON.parse(localStorage.getItem('db_clientes')) || [];
+        let pedidos = JSON.parse(localStorage.getItem('db_pedidos')) || [];
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('sec-' + sectionId).style.display = 'block';
+            event.target.classList.add('active');
+            if(sectionId === 'pedidos') carregarSelectClientes();
+            if(sectionId === 'historico') carregarHistorico();
+        }
+
+        function salvarCliente() {
+            const nome = document.getElementById('cli-nome').value;
+            const whats = document.getElementById('cli-whats').value;
+            const end = document.getElementById('cli-end').value;
+
+            if(!nome || !end) return alert('Nome e Endereço são obrigatórios!');
+
+            clientes.push({ id: Date.now(), nome, whats, end });
+            localStorage.setItem('db_clientes', JSON.stringify(clientes));
+            
+            document.getElementById('cli-nome').value = '';
+            document.getElementById('cli-whats').value = '';
+            document.getElementById('cli-end').value = '';
+            
+            carregarClientes();
+            alert('Cliente cadastrado com sucesso!');
+        }
+
+        function carregarClientes() {
+            const tbody = document.querySelector('#tab-clientes tbody');
+            tbody.innerHTML = '';
+            clientes.forEach(c => {
+                tbody.innerHTML += `<tr>
+                    <td>${c.nome}</td>
+                    <td>${c.whats}</td>
+                    <td><input type="text" value="${c.end}" onchange="editarEndereco(${c.id}, this.value)" style="border:none; background:transparent;"></td>
+                    <td><button onclick="alterarEnderecoTemporario('${c.nome}')" style="cursor:pointer; color:blue; border:none; background:none;">Novo Pedido</button></td>
+                </tr>`;
+            });
+        }
+
+        function editarEndereco(id, novoEnd) {
+            let cli = clientes.find(c => c.id === id);
+            if(cli) {
+                cli.end = novoEnd;
+                localStorage.setItem('db_clientes', JSON.stringify(clientes));
+            }
+        }
+
+        function carregarSelectClientes() {
+            const select = document.getElementById('ped-cliente');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            clientes.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+            });
+        }
+
+        function actualizarEnderecoPedido() {
+            const idCli = document.getElementById('ped-cliente').value;
+            const cli = clientes.find(c => c.id == idCli);
+            document.getElementById('ped-end').value = cli ? cli.end : '';
+        }
+
+        function salvarPedido() {
+            const idCli = document.getElementById('ped-cliente').value;
+            const cli = clientes.find(c => c.id == idCli);
+            const enderecoEntrega = document.getElementById('ped-end').value;
+            const detalhes = document.getElementById('ped-detalhes').value;
+            const valor = document.getElementById('ped-valor').value;
+
+            if(!cli || !detalhes || !valor) return alert('Preencha todos os campos do pedido!');
+
+            pedidos.push({
+                cliente: cli.nome,
+                endereco: enderecoEntrega,
+                detalhes,
+                valor,
+                status: 'Pendente'
+            });
+
+            localStorage.setItem('db_pedidos', JSON.stringify(pedidos));
+            alert('Pedido registrado com sucesso!');
+            showSection('historico');
+        }
+
+        function carregarHistorico() {
+            const tbody = document.querySelector('#tab-pedidos tbody');
+            tbody.innerHTML = '';
+            pedidos.forEach(p => {
+                tbody.innerHTML += `<tr>
+                    <td>${p.cliente}</td>
+                    <td>${p.detalhes}</td>
+                    <td>${p.endereco}</td>
+                    <td>R$ ${parseFloat(p.valor).toFixed(2)}</td>
+                    <td><span class="badge ${p.status === 'Pendente' ? 'badge-pendente' : 'badge-entregue'}">${p.status}</span></td>
+                </tr>`;
+            });
+        }
+
+        // Inicializa a tabela de clientes na primeira tela
+        carregarClientes();
+    </script>
+</body>
+</html>
