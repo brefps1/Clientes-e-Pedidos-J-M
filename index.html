@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Nuvem - Açaí J & M v9.2</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Painel Nuvem - Açaí J & M v10.0</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
         body { background-color: #f4f6f9; display: flex; flex-direction: row; min-height: 100vh; }
@@ -162,7 +165,7 @@
             <div class="card">
                 <h3>Histórico de Pedidos</h3>
                 <div class="table-responsive">
-                    <table id="tab-pedidos"><thead><tr><th>Nº</th><th>Atendente</th><th>Cliente</th><th>Produtos</th><th>Endereço</th><th>Pagamento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table>
+                    <table id="tab-pedidos"><thead><tr><th>Atendente</th><th>Cliente</th><th>Produtos</th><th>Endereço</th><th>Pagamento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table>
                 </div>
             </div>
         </div>
@@ -214,17 +217,25 @@
 
     <script>
         // ===================================================
-        // ⚠️ SUAS CHAVES DO SUPABASE (PROJETO SELECIONADO) ⚠️
+        // 🔥 SUAS CONFIGURAÇÕES OFICIAIS DO FIREBASE 🔥
         // ===================================================
-        const SUPABASE_URL = "https://zfcdyfxcpxlxvnvwawbo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_9pg-2Rl8LFeYiORRu_wFPg_AjyWAo8S";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIplhwGak1WWC1dbdRaDkSnOmu_QgTi48",
+            authDomain: "acaijm.firebaseapp.com",
+            projectId: "acaijm",
+            storageBucket: "acaijm.firebasestorage.app",
+            messagingSenderId: "681853604158",
+            appId: "1:681853604158:web:c2117e36e633b672bf5c6f",
+            measurementId: "G-GEHKNJL7JB"
+        };
 
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Inicializando o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
         let usuarioLogado = "";
 
         window.onload = function() {
-            // Garante que o app inicia 100% limpo, sem requisições fantasmas automáticas
             localStorage.removeItem('db_user_logado');
             usuarioLogado = "";
         };
@@ -235,36 +246,52 @@
             const erroMsg = document.getElementById('msg-erro-login');
 
             if (!userIn || !senhaIn) {
-                alert("Por favor, digite o usuário e a senha.");
+                alert("Por favor, preencha o usuário e a senha.");
                 return;
             }
 
             try {
-                // Consulta limpa acionada estritamente pelo clique do botão
-                const { data, error } = await _supabase.from('funcionarios').select('*').eq('usuario', userIn).eq('senha', senhaIn);
+                // Checa se a coleção de funcionários está vazia
+                const snapshotInicial = await db.collection('funcionarios').get();
+                
+                // 💡 SISTEMA AUTO-REPARÁVEL: Se o banco estiver vazio, cria o admin master na hora!
+                if (snapshotInicial.empty && userIn === 'admin' && senhaIn === '513266') {
+                    await db.collection('funcionarios').doc('admin').set({
+                        usuario: 'admin',
+                        senha: '513266'
+                    });
+                    sucessoLogin(userIn);
+                    return;
+                }
 
-                if (error) throw error;
+                // Consulta padrão de login
+                const snapshot = await db.collection('funcionarios')
+                                         .where('usuario', '==', userIn)
+                                         .where('senha', '==', senhaIn)
+                                         .get();
 
-                if(data && data.length > 0) {
-                    localStorage.setItem('db_user_logado', userIn);
-                    usuarioLogado = userIn;
-                    
-                    document.getElementById('nome-operador-logado').innerText = userIn.toUpperCase();
-                    document.getElementById('login-screen').style.display = 'none';
-                    erroMsg.style.display = 'none';
-                    
-                    if(userIn === 'admin') {
-                        document.getElementById('btn-equipe').style.display = 'flex';
-                    }
-                    
-                    showSection('clientes');
+                if (!snapshot.empty) {
+                    sucessoLogin(userIn);
                 } else {
                     erroMsg.style.display = 'block';
                 }
             } catch (err) {
-                console.error("Erro no login:", err);
-                alert("Erro ao conectar com o banco. Verifique se a sua tabela ou chaves estão prontas.");
+                console.error("Erro no login Firebase:", err);
+                alert("Erro ao conectar com o Firebase Firestore. Verifique se ativou o modo de teste.");
             }
+        }
+
+        function sucessoLogin(user) {
+            localStorage.setItem('db_user_logado', user);
+            usuarioLogado = user;
+            document.getElementById('nome-operador-logado').innerText = user.toUpperCase();
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('msg-erro-login').style.display = 'none';
+            
+            if(user === 'admin') {
+                document.getElementById('btn-equipe').style.display = 'flex';
+            }
+            showSection('clientes');
         }
 
         function efetuarLogout() {
@@ -294,36 +321,34 @@
             const senha = document.getElementById('eq-senha').value.trim();
             if(!usuario || !senha) return alert("Preencha todos os campos!");
 
-            const { error } = await _supabase.from('funcionarios').insert([{ usuario, senha }]);
-            if(error) alert("Erro ou usuário já existente!");
-            else {
+            try {
+                await db.collection('funcionarios').doc(usuario).set({ usuario, senha });
                 alert("Funcionário cadastrado!");
                 document.getElementById('eq-usuario').value = '';
                 document.getElementById('eq-senha').value = '';
                 carregarEquipe();
-            }
+            } catch (e) { alert("Erro ao salvar funcionário."); }
         }
 
         async function carregarEquipe() {
             const tbody = document.querySelector('#tab-equipe tbody');
             tbody.innerHTML = '';
-            const { data } = await _supabase.from('funcionarios').select('*');
-            if(data) {
-                data.forEach(f => {
-                    if(f.usuario !== 'admin') {
-                        tbody.innerHTML += `<tr>
-                            <td><b>${f.usuario}</b></td>
-                            <td>${f.senha}</td>
-                            <td><button class="btn-danger" style="color:white; padding:5px 10px; border:none; border-radius:4px; cursor:pointer;" onclick="excluirFuncionario(${f.id})">Remover</button></td>
-                        </tr>`;
-                    }
-                });
-            }
+            const snapshot = await db.collection('funcionarios').get();
+            snapshot.forEach(doc => {
+                const f = doc.data();
+                if(f.usuario !== 'admin') {
+                    tbody.innerHTML += `<tr>
+                        <td><b>${f.usuario}</b></td>
+                        <td>${f.senha}</td>
+                        <td><button class="btn-danger" style="color:white; padding:5px 10px; border:none; border-radius:4px; cursor:pointer;" onclick="excluirFuncionario('${doc.id}')">Remover</button></td>
+                    </tr>`;
+                }
+            });
         }
 
         async function excluirFuncionario(id) {
             if(confirm("Remover este funcionário?")) {
-                await _supabase.from('funcionarios').delete().eq('id', id);
+                await db.collection('funcionarios').doc(id).delete();
                 carregarEquipe();
             }
         }
@@ -338,9 +363,9 @@
             if(!nome || !endereco) return alert('Nome e Endereço obrigatórios!');
 
             if(id === "") {
-                await _supabase.from('clientes').insert([{ nome, whatsapp, endereco }]);
+                await db.collection('clientes').add({ nome, whatsapp, endereco });
             } else {
-                await _supabase.from('clientes').update({ nome, whatsapp, endereco }).eq('id', id);
+                await db.collection('clientes').doc(id).update({ nome, whatsapp, endereco });
                 cancelarEdicao();
             }
             document.getElementById('cli-nome').value = '';
@@ -355,12 +380,186 @@
             const termo = document.getElementById('busca-cliente').value.toLowerCase();
             tbody.innerHTML = '';
             
-            let query = _supabase.from('clientes').select('*');
-            const { data } = await query;
+            const snapshot = await db.collection('clientes').get();
+            snapshot.forEach(doc => {
+                const c = doc.data();
+                if(c.nome.toLowerCase().includes(termo) || c.whatsapp.includes(termo)) {
+                    tbody.innerHTML += `<tr>
+                        <td><b>${c.nome}</b></td>
+                        <td>${c.whatsapp}</td>
+                        <td>${c.endereco}</td>
+                        <td class="action-btns">
+                            <button class="btn-success" style="color:white;" onclick="atalhoNovoPedido('${c.nome}', '${c.endereco}')">+Pedido</button>
+                            <button style="background-color: #cbd5e1;" onclick="prepararEdicao('${doc.id}', '${c.nome}', '${c.whatsapp}', '${c.endereco}')">Editar</button>
+                            <button class="btn-danger" style="color:white;" onclick="excluirCliente('${doc.id}')">X</button>
+                        </td>
+                    </tr>`;
+                }
+            });
+        }
+
+        function prepararEdicao(id, nome, whats, end) {
+            document.getElementById('cli-id').value = id;
+            document.getElementById('cli-nome').value = nome;
+            document.getElementById('cli-whats').value = whats;
+            document.getElementById('cli-end').value = end;
+            document.getElementById('form-cliente-titulo').innerText = "Editar Cliente";
+            document.getElementById('btn-cancelar-edit').style.display = "inline-block";
+        }
+
+        function cancelarEdicao() {
+            document.getElementById('cli-id').value = "";
+            document.getElementById('form-cliente-titulo').innerText = "Cadastrar Novo Cliente";
+            document.getElementById('btn-cancelar-edit').style.display = "none";
+        }
+
+        async function excluirCliente(id) {
+            if(confirm("Excluir cliente?")) { await db.collection('clientes').doc(id).delete(); carregarClientes(); }
+        }
+
+        // PEDIDOS
+        function resetarFormPedido() {
+            document.getElementById('ped-busca-input').value = '';
+            document.getElementById('ped-busca-resultados').style.display = 'none';
+            document.getElementById('cliente-selecionado-alerta').style.display = 'none';
+            document.getElementById('ped-cliente-nome').value = '';
+            document.getElementById('ped-end').value = '';
+            document.getElementById('ped-detalhes').value = '';
+            document.getElementById('ped-valor').value = '';
+        }
+
+        async function buscarClienteParaPedido() {
+            const termo = document.getElementById('ped-busca-input').value.toLowerCase();
+            const container = document.getElementById('ped-busca-resultados');
+            if(termo.length < 1) { container.style.display = 'none'; return; }
+            container.innerHTML = '';
             
-            if(data) {
-                data.forEach(c => {
-                    if(c.nome.toLowerCase().includes(termo) || c.whatsapp.includes(termo)) {
-                        tbody.innerHTML += `<tr>
-                            <td><b>${c.nome}</b></td>
-                            <td>${c.whatsapp}</td>
+            const snapshot = await db.collection('clientes').get();
+            snapshot.forEach(doc => {
+                const c = doc.data();
+                if(c.nome.toLowerCase().includes(termo)) {
+                    container.innerHTML += `<div class="busca-item-linha" onclick="selecionarClienteParaPedido('${c.nome}', '${c.endereco}')"><b>${c.nome}</b></div>`;
+                }
+            });
+            container.style.display = 'block';
+        }
+
+        function selecionarClienteParaPedido(nome, endereco) {
+            document.getElementById('ped-cliente-nome').value = nome;
+            document.getElementById('ped-end').value = endereco;
+            const badge = document.getElementById('cliente-selecionado-alerta');
+            badge.innerHTML = `✅ <b>Selecionado:</b> ${nome}`;
+            badge.style.display = 'block';
+            document.getElementById('ped-busca-resultados').style.display = 'none';
+        }
+
+        function atalhoNovoPedido(nome, endereco) { showSection('pedidos'); selecionarClienteParaPedido(nome, endereco); }
+
+        async function salvarPedido() {
+            const cliente = document.getElementById('ped-cliente-nome').value;
+            const endereco = document.getElementById('ped-end').value.trim();
+            const detalhes = document.getElementById('ped-detalhes').value.trim();
+            const pagamento = document.getElementById('ped-pagamento').value;
+            const valor = document.getElementById('ped-valor').value;
+
+            if(!cliente || !detalhes || !valor) return alert('Preencha os campos!');
+
+            await db.collection('pedidos').add({
+                atendente: usuarioLogado.toUpperCase(),
+                cliente,
+                endereco,
+                detalhes,
+                pagamento,
+                valor: parseFloat(valor),
+                status: "Pendente",
+                data: new Date().toISOString()
+            });
+            alert('Pedido feito!');
+            showSection('historico');
+        }
+
+        async function carregarHistorico() {
+            const tbody = document.querySelector('#tab-pedidos tbody');
+            tbody.innerHTML = '';
+            const snapshot = await db.collection('pedidos').orderBy('data', 'desc').get();
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                const badgeClass = p.status === 'Pendente' ? 'badge-pendente' : 'badge-finalizado';
+                const botaoStatus = p.status === 'Pendente' 
+                    ? `<button class="btn-success" style="color:white;" onclick="alterarStatusPedido('${doc.id}', 'Finalizado')">✅ Finalizar</button>` 
+                    : `<button style="background-color:#cbd5e1;" onclick="alterarStatusPedido('${doc.id}', 'Pendente')">🔄 Reabrir</button>`;
+
+                tbody.innerHTML += `<tr>
+                    <td><mark>${p.atendente}</mark></td>
+                    <td><b>${p.cliente}</b></td>
+                    <td>${p.detalhes}</td>
+                    <td>${p.endereco}</td>
+                    <td>${p.pagamento}</td>
+                    <td>R$ ${parseFloat(p.valor).toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}">${p.status}</span></td>
+                    <td class="action-btns">${botaoStatus}<button class="btn-danger" style="color:white;" onclick="excluirPedido('${doc.id}')">X</button></td>
+                </tr>`;
+            });
+        }
+
+        async function alterarStatusPedido(id, novoStatus) {
+            await db.collection('pedidos').doc(id).update({ status: novoStatus });
+            carregarHistorico();
+        }
+
+        async function excluirPedido(id) {
+            if(confirm("Deletar pedido?")) { await db.collection('pedidos').doc(id).delete(); carregarHistorico(); }
+        }
+
+        // CAIXA
+        async function calcularCaixa() {
+            const filtro = document.querySelector('input[name="tipo-filtro"]:checked').value;
+            let total = 0, pix = 0, dinheiro = 0, cartao = 0;
+            
+            const snapshot = await db.collection('pedidos').where('status', '==', 'Finalizado').get();
+            const hojeStr = new Date().toLocaleDateString('pt-BR');
+
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                let dataPed = new Date(p.data).toLocaleDateString('pt-BR');
+                if(filtro === 'tudo' || (filtro === 'hoje' && dataPed === hojeStr)) {
+                    let v = parseFloat(p.valor);
+                    total += v;
+                    if(p.pagamento === 'Pix') pix += v;
+                    if(p.pagamento === 'Dinheiro') dinheiro += v;
+                    if(p.pagamento === 'Cartão') cartao += v;
+                }
+            });
+            
+            document.getElementById('caixa-total').innerText = `R$ ${total.toFixed(2)}`;
+            document.getElementById('caixa-pix').innerText = `R$ ${pix.toFixed(2)}`;
+            document.getElementById('caixa-dinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
+            document.getElementById('caixa-cartao').innerText = `R$ ${cartao.toFixed(2)}`;
+        }
+
+        // RECEITAS
+        async function salvarReceita() {
+            const nome = document.getElementById('rec-nome').value.trim();
+            const texto = document.getElementById('rec-texto').value.trim();
+            if(!nome || !texto) return alert('Preencha os campos!');
+            await db.collection('receitas').add({ nome, texto });
+            document.getElementById('rec-nome').value = '';
+            document.getElementById('rec-texto').value = '';
+            carregarReceitas();
+        }
+
+        async function carregarReceitas() {
+            const container = document.getElementById('lista-receitas');
+            container.innerHTML = '';
+            const snapshot = await db.collection('receitas').get();
+            snapshot.forEach(doc => {
+                const r = doc.data();
+                container.innerHTML += `<div class="receita-item">
+                    <h4>🥤 ${r.nome}</h4>
+                    <p style="white-space:pre-wrap; background:#f8fafc; padding:10px; border-radius:6px; margin-top:5px;">${r.texto}</p>
+                </div>`;
+            });
+        }
+    </script>
+</body>
+</html>
