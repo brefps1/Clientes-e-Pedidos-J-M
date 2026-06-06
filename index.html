@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Nuvem - Açaí J & M v9.0</title>
+    <title>Painel Nuvem - Açaí J & M v9.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
@@ -88,7 +88,7 @@
 
     <div id="login-screen">
         <div class="login-card">
-            <h2>🧴 Açaí J & M</h2>
+            <h2>🍇 Açaí J & M</h2>
             <h3>Painel Nuvem</h3>
             <div class="login-error" id="msg-erro-login">Usuário ou senha incorretos!</div>
             <div class="form-group" style="text-align: left;">
@@ -117,7 +117,7 @@
         <button class="nav-btn" id="btn-historico" onclick="showSection('historico')">📜 Histórico</button>
         <button class="nav-btn" id="btn-caixa" onclick="showSection('caixa')">💰 Caixa</button>
         <button class="nav-btn" id="btn-receitas" onclick="showSection('receitas')">📖 Receitas</button>
-        <button class="nav-btn" id="btn-equipe" onclick="showSection('equipe')" style="display:none; background:#312e81;">⚙️ equipe</button>
+        <button class="nav-btn" id="btn-equipe" onclick="showSection('equipe')" style="display:none; background:#312e81;">⚙️ Equipe</button>
     </div>
 
     <div id="content">
@@ -213,11 +213,11 @@
     </div>
 
     <script>
-        // ==========================================
-        // ⚠️ INSIRA SUAS CHAVES DO SUPABASE AQUI ⚠️
-        // ==========================================
+        // ===================================================
+        // ⚠️ SUAS CHAVES DO SUPABASE (BLINDADAS COM RLS) ⚠️
+        // ===================================================
         const SUPABASE_URL = "https://zfcdyfxcpxlxvnvwawbo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_9pg-2Rl8LfEYiORRu_wFPg_AjyWAo8S";
+        const SUPABASE_KEY = "sb_publishable_9pg-2Rl8LFeYiORRu_wFPg_AjyWAo8S"; // Use sempre a Publishable key (anon) aqui!
 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -228,8 +228,8 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('nome-operador-logado').innerText = usuarioLogado.toUpperCase();
                 if(usuarioLogado === 'admin') document.getElementById('btn-equipe').style.display = 'flex';
+                carregarClientes(); 
             }
-            carregarClientes();
         };
 
         async function efetuarLogin() {
@@ -237,18 +237,30 @@
             const senhaIn = document.getElementById('login-senha').value.trim();
             const erroMsg = document.getElementById('msg-erro-login');
 
-            const { data, error } = await _supabase.from('funcionarios').select('*').eq('usuario', userIn).eq('senha', senhaIn);
+            try {
+                const { data, error } = await _supabase.from('funcionarios').select('*').eq('usuario', userIn).eq('senha', senhaIn);
 
-            if(data && data.length > 0) {
-                localStorage.setItem('db_user_logado', userIn);
-                usuarioLogado = userIn;
-                document.getElementById('nome-operador-logado').innerText = userIn.toUpperCase();
-                document.getElementById('login-screen').style.display = 'none';
-                erroMsg.style.display = 'none';
-                if(userIn === 'admin') document.getElementById('btn-equipe').style.display = 'flex';
-                showSection('clientes');
-            } else {
-                erroMsg.style.display = 'block';
+                if (error) throw error;
+
+                if(data && data.length > 0) {
+                    localStorage.setItem('db_user_logado', userIn);
+                    usuarioLogado = userIn;
+                    
+                    document.getElementById('nome-operador-logado').innerText = userIn.toUpperCase();
+                    document.getElementById('login-screen').style.display = 'none';
+                    erroMsg.style.display = 'none';
+                    
+                    if(userIn === 'admin') {
+                        document.getElementById('btn-equipe').style.display = 'flex';
+                    }
+                    
+                    showSection('clientes');
+                } else {
+                    erroMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Erro no login:", err);
+                alert("Erro ao conectar com o banco. Verifique as chaves RLS.");
             }
         }
 
