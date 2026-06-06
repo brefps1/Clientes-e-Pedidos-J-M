@@ -472,7 +472,7 @@
             snapshot.forEach(doc => {
                 const c = doc.data();
                 if(c.nome.toLowerCase().includes(termo) || c.whatsapp.includes(termo)) {
-                    tbody.innerHTML += `<tr><td><b>${c.nome}</b></td><td>${c.whatsapp}</td><td>${c.endereco}</td><td class="action-btns"><button class="btn-success" style="color:white;" onclick="atalhoNovoPedido('${c.nome}', '${c.endereco}')">+Pedido</button><button style="background-color:#cbd5e1;" onclick="prepararEdicao('${doc.id}', '${c.nome}', '${c.whatsapp}', '${c.endereco}')">Editar</button><button class="btn-danger" style="color:white;" onclick="excluirCliente('${doc.id}')">X</button></td></tr>`;
+                    tbody.innerHTML += `<tr><td><b>${c.nome}</b></td><td>${c.whatsapp}</td><td>${c.endereco}</td><td class="action-btns"><button class="btn-success" style="color:white;" onclick="atalhoNovoPedido('${c.nome}', '${c.endereco}')">Novo Pedido</button><button style="background-color:#cbd5e1;" onclick="prepararEdicao('${doc.id}', '${c.nome}', '${c.whatsapp}', '${c.endereco}')">Editar</button><button class="btn-danger" style="color:white;" onclick="excluirCliente('${doc.id}')">X</button></td></tr>`;
                 }
             });
         }
