@@ -99,47 +99,34 @@
         @media (max-width: 768px) {
             body { flex-direction: column; }
 
-            /* Esconde sidebar lateral */
             #sidebar { display: none; }
-
-            /* Mostra barra inferior */
             #bottom-nav { display: flex; }
 
-            /* Header menor */
             #top-header { padding: 12px 16px; height: 56px; }
             #top-header h1 { font-size: 18px; }
             .user-info-box span { display: none; }
 
-            /* Conteúdo ocupa tudo, com espaço para header e bottom nav */
             #content { margin-left: 0; margin-top: 56px; padding: 14px 12px; padding-bottom: 85px; position: relative; z-index: 1; }
 
-            /* Cards mais compactos */
             .card { padding: 16px 14px; border-radius: 10px; }
             h3 { font-size: 16px; margin-bottom: 14px; }
 
-            /* Inputs maiores para toque */
             input, select, textarea { padding: 14px 12px; font-size: 16px; border-radius: 8px; }
 
-            /* Botão principal ocupa largura total */
             button.btn { max-width: 100%; width: 100%; padding: 14px; font-size: 16px; }
 
-            /* Grid de métodos vira coluna única */
             .grid-metodos { grid-template-columns: 1fr; gap: 10px; }
 
-            /* Faturamento menor */
             .faturamento-box p { font-size: 26px; }
             .faturamento-box { padding: 18px; }
 
-            /* Filtros de caixa em coluna */
             .radio-group { gap: 12px; }
             .radio-option { font-size: 14px; }
             .inputs-dinamicos-caixa { flex-direction: column; gap: 10px; }
             .inputs-dinamicos-caixa div { min-width: unset; width: 100%; }
 
-            /* Botões de ação menores */
             .action-btns button { padding: 7px 10px; font-size: 11px; }
 
-            /* Tabelas rolam horizontalmente */
             .table-responsive { border-radius: 6px; }
             th, td { padding: 10px 12px; font-size: 13px; }
         }
@@ -405,9 +392,7 @@
 
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-            // Desktop sidebar
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            // Mobile bottom nav
             document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
 
             document.getElementById('sec-' + sectionId).style.display = 'block';
@@ -428,19 +413,21 @@
             window.scrollTo(0, 0);
         }
 
-        // EQUIPE
+        // ==================== EQUIPE ====================
         async function salvarFuncionario() {
             const usuario = document.getElementById('eq-usuario').value.trim().toLowerCase();
             const senha = document.getElementById('eq-senha').value.trim();
             if(!usuario || !senha) return alert("Preencha todos os campos!");
             await db.collection('funcionarios').doc(usuario).set({ usuario, senha });
             alert("Funcionário cadastrado!");
-            document.getElementById('eq-usuario').value = ''; document.getElementById('eq-senha').value = '';
+            document.getElementById('eq-usuario').value = '';
+            document.getElementById('eq-senha').value = '';
             carregarEquipe();
         }
 
         async function carregarEquipe() {
-            const tbody = document.querySelector('#tab-equipe tbody'); tbody.innerHTML = '';
+            const tbody = document.querySelector('#tab-equipe tbody');
+            tbody.innerHTML = '';
             const snapshot = await db.collection('funcionarios').get();
             snapshot.forEach(doc => {
                 const f = doc.data();
@@ -450,24 +437,37 @@
             });
         }
 
-        async function excluirFuncionario(id) { if(confirm("Remover funcionário?")) { await db.collection('funcionarios').doc(id).delete(); carregarEquipe(); } }
+        async function excluirFuncionario(id) {
+            if(confirm("Remover funcionário?")) {
+                await db.collection('funcionarios').doc(id).delete();
+                carregarEquipe();
+            }
+        }
 
-        // CLIENTES
+        // ==================== CLIENTES ====================
         async function salvarCliente() {
             const id = document.getElementById('cli-id').value;
             const nome = document.getElementById('cli-nome').value.trim();
             const whatsapp = document.getElementById('cli-whats').value.trim();
             const endereco = document.getElementById('cli-end').value.trim();
             if(!nome || !endereco) return alert('Nome e Endereço obrigatórios!');
-            if(id === "") { await db.collection('clientes').add({ nome, whatsapp, endereco }); }
-            else { await db.collection('clientes').doc(id).update({ nome, whatsapp, endereco }); cancelarEdicao(); }
-            document.getElementById('cli-nome').value = ''; document.getElementById('cli-whats').value = ''; document.getElementById('cli-end').value = '';
+            if(id === "") {
+                await db.collection('clientes').add({ nome, whatsapp, endereco });
+            } else {
+                await db.collection('clientes').doc(id).update({ nome, whatsapp, endereco });
+                cancelarEdicao();
+            }
+            document.getElementById('cli-nome').value = '';
+            document.getElementById('cli-whats').value = '';
+            document.getElementById('cli-end').value = '';
             carregarClientes();
         }
 
         async function carregarClientes() {
-            const tbody = document.querySelector('#tab-clientes tbody'); if(!tbody) return;
-            const termo = document.getElementById('busca-cliente').value.toLowerCase(); tbody.innerHTML = '';
+            const tbody = document.querySelector('#tab-clientes tbody');
+            if(!tbody) return;
+            const termo = document.getElementById('busca-cliente').value.toLowerCase();
+            tbody.innerHTML = '';
             const snapshot = await db.collection('clientes').get();
             snapshot.forEach(doc => {
                 const c = doc.data();
@@ -478,20 +478,29 @@
         }
 
         function prepararEdicao(id, nome, whats, end) {
-            document.getElementById('cli-id').value = id; document.getElementById('cli-nome').value = nome;
-            document.getElementById('cli-whats').value = whats; document.getElementById('cli-end').value = end;
+            document.getElementById('cli-id').value = id;
+            document.getElementById('cli-nome').value = nome;
+            document.getElementById('cli-whats').value = whats;
+            document.getElementById('cli-end').value = end;
             document.getElementById('form-cliente-titulo').innerText = "Editar Cliente";
             document.getElementById('btn-cancelar-edit').style.display = "inline-block";
             window.scrollTo(0, 0);
         }
+
         function cancelarEdicao() {
             document.getElementById('cli-id').value = "";
             document.getElementById('form-cliente-titulo').innerText = "Cadastrar Novo Cliente";
             document.getElementById('btn-cancelar-edit').style.display = "none";
         }
-        async function excluirCliente(id) { if(confirm("Excluir cliente?")) { await db.collection('clientes').doc(id).delete(); carregarClientes(); } }
 
-        // PEDIDOS
+        async function excluirCliente(id) {
+            if(confirm("Excluir cliente?")) {
+                await db.collection('clientes').doc(id).delete();
+                carregarClientes();
+            }
+        }
+
+        // ==================== PEDIDOS ====================
         function resetarFormPedido() {
             document.getElementById('ped-busca-input').value = '';
             document.getElementById('ped-busca-resultados').style.display = 'none';
@@ -521,10 +530,15 @@
             document.getElementById('ped-cliente-nome').value = nome;
             document.getElementById('ped-end').value = endereco;
             const badge = document.getElementById('cliente-selecionado-alerta');
-            badge.innerHTML = `✅ <b>Selecionado:</b> ${nome}`; badge.style.display = 'block';
+            badge.innerHTML = `✅ <b>Selecionado:</b> ${nome}`;
+            badge.style.display = 'block';
             document.getElementById('ped-busca-resultados').style.display = 'none';
         }
-        function atalhoNovoPedido(nome, endereco) { showSection('pedidos'); selecionarClienteParaPedido(nome, endereco); }
+
+        function atalhoNovoPedido(nome, endereco) {
+            showSection('pedidos');
+            selecionarClienteParaPedido(nome, endereco);
+        }
 
         async function salvarPedido() {
             const cliente = document.getElementById('ped-cliente-nome').value;
@@ -540,18 +554,24 @@
                 if (docConfig.exists) { novoNumero = docConfig.data().ultimo_pedido + 1; }
                 const numeroFormatado = String(novoNumero).padStart(4, '0');
                 await db.collection('pedidos').add({
-                    numero: numeroFormatado, atendente: usuarioLogado.toUpperCase(),
+                    numero: numeroFormatado,
+                    atendente: usuarioLogado.toUpperCase(),
                     cliente, endereco, detalhes, pagamento,
-                    valor: parseFloat(valor), status: "Pendente", data: new Date().toISOString()
+                    valor: parseFloat(valor),
+                    status: "Pendente",
+                    data: new Date().toISOString()
                 });
                 await refConfig.set({ ultimo_pedido: novoNumero });
                 alert('Pedido #' + numeroFormatado + ' salvo com sucesso!');
                 showSection('historico');
-            } catch (e) { alert("Erro ao salvar pedido: " + e.message); }
+            } catch (e) {
+                alert("Erro ao salvar pedido: " + e.message);
+            }
         }
 
         async function carregarHistorico() {
-            const tbody = document.querySelector('#tab-pedidos tbody'); tbody.innerHTML = '';
+            const tbody = document.querySelector('#tab-pedidos tbody');
+            tbody.innerHTML = '';
             const filtroCliente = document.getElementById('busca-historico-cliente').value.toLowerCase();
             const snapshot = await db.collection('pedidos').orderBy('data', 'desc').get();
             snapshot.forEach(doc => {
@@ -563,18 +583,38 @@
                 const botaoStatus = p.status === 'Pendente'
                     ? `<button class="btn-success" style="color:white;" onclick="alterarStatusPedido('${doc.id}', 'Finalizado')">✅ Finalizar</button>`
                     : `<button style="background-color:#cbd5e1;" onclick="alterarStatusPedido('${doc.id}', 'Pendente')">🔄 Reabrir</button>`;
-                tbody.innerHTML += `<tr><td><small>${numeroPedido}</small></td><td><mark>${p.atendente}</mark></td><td><b>${p.cliente}</b></td><td><i>${produtosVendidos}</i></td><td>${p.endereco}</td><td>${p.pagamento}</td><td><b>R$ ${parseFloat(p.valor).toFixed(2)}</b></td><td><span class="badge ${badgeClass}">${p.status}</span></td><td class="action-btns">${botaoStatus}<button class="btn-danger" style="color:white;" onclick="excluirPedido('${doc.id}')">X</button></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td><small>${numeroPedido}</small></td>
+                    <td><mark>${p.atendente}</mark></td>
+                    <td><b>${p.cliente}</b></td>
+                    <td><i>${produtosVendidos}</i></td>
+                    <td>${p.endereco}</td>
+                    <td>${p.pagamento}</td>
+                    <td><b>R$ ${parseFloat(p.valor).toFixed(2)}</b></td>
+                    <td><span class="badge ${badgeClass}">${p.status}</span></td>
+                    <td class="action-btns">${botaoStatus}<button class="btn-danger" style="color:white;" onclick="excluirPedido('${doc.id}')">X</button></td>
+                </tr>`;
             });
         }
 
-        async function alterarStatusPedido(id, novoStatus) { await db.collection('pedidos').doc(id).update({ status: novoStatus }); carregarHistorico(); }
-        async function excluirPedido(id) { if(confirm("Deletar pedido?")) { await db.collection('pedidos').doc(id).delete(); carregarHistorico(); } }
+        async function alterarStatusPedido(id, novoStatus) {
+            await db.collection('pedidos').doc(id).update({ status: novoStatus });
+            carregarHistorico();
+        }
 
-        // CAIXA
+        async function excluirPedido(id) {
+            if(confirm("Deletar pedido?")) {
+                await db.collection('pedidos').doc(id).delete();
+                carregarHistorico();
+            }
+        }
+
+        // ==================== CAIXA (CORRIGIDO) ====================
         function alternarFiltrosCaixa() {
             const filtroSelecionado = document.getElementById('select-tipo-filtro').value;
             document.getElementById('box-filtro-dia').style.display = 'none';
             document.getElementById('box-filtro-mes').style.display = 'none';
+
             if (filtroSelecionado === 'dia') {
                 document.getElementById('box-filtro-dia').style.display = 'block';
             } else if (filtroSelecionado === 'mes') {
@@ -591,35 +631,57 @@
             let total = 0, pix = 0, dinheiro = 0, cartao = 0;
             const pedidosFiltrados = [];
 
-            const snapshot = await db.collection('pedidos').where('status', '==', 'Finalizado').orderBy('data', 'desc').get();
-            const hojeStr = new Date().toLocaleDateString('pt-BR');
+            // ✅ Busca todos os pedidos ordenados por data (sem filtro de status na query)
+            const snapshot = await db.collection('pedidos').orderBy('data', 'desc').get();
+
+            // ✅ Data de hoje em partes numéricas (sem depender de locale)
+            const agora = new Date();
+            const hojeAno = agora.getFullYear();
+            const hojeMes = agora.getMonth(); // 0-indexed
+            const hojeDia = agora.getDate();
 
             snapshot.forEach(doc => {
                 const p = doc.data();
-                const dataPedidoObjeto = new Date(p.data);
-                const dataPedStr = dataPedidoObjeto.toLocaleDateString('pt-BR');
+
+                // ✅ Filtra por status manualmente
+                if (p.status !== 'Finalizado') return;
+
+                const dataPedido = new Date(p.data);
+                const pedAno = dataPedido.getFullYear();
+                const pedMes = dataPedido.getMonth(); // 0-indexed
+                const pedDia = dataPedido.getDate();
+
                 let deveIncluir = false;
 
-                if (filtro === 'tudo') { deveIncluir = true; }
-                else if (filtro === 'hoje') { if (dataPedStr === hojeStr) deveIncluir = true; }
-                else if (filtro === 'dia') {
+                if (filtro === 'tudo') {
+                    deveIncluir = true;
+
+                } else if (filtro === 'hoje') {
+                    // ✅ Comparação numérica, sem string de locale
+                    deveIncluir = (pedAno === hojeAno && pedMes === hojeMes && pedDia === hojeDia);
+
+                } else if (filtro === 'dia') {
                     const dataEscolhidaRaw = document.getElementById('filtro-caixa-data-especifica').value;
                     if (dataEscolhidaRaw) {
-                        const partes = dataEscolhidaRaw.split('-');
-                        if (dataPedStr === `${partes[2]}/${partes[1]}/${partes[0]}`) deveIncluir = true;
+                        // input type="date" retorna "YYYY-MM-DD"
+                        const [anoEsc, mesEsc, diaEsc] = dataEscolhidaRaw.split('-').map(Number);
+                        deveIncluir = (pedAno === anoEsc && (pedMes + 1) === mesEsc && pedDia === diaEsc);
                     }
+
                 } else if (filtro === 'mes') {
-                    const mesSel = document.getElementById('filtro-caixa-mes').value;
-                    const anoSel = document.getElementById('filtro-caixa-ano').value;
-                    if (String(dataPedidoObjeto.getMonth() + 1).padStart(2, '0') === mesSel && String(dataPedidoObjeto.getFullYear()) === anoSel) {
-                        deveIncluir = true;
-                    }
+                    const mesSel = parseInt(document.getElementById('filtro-caixa-mes').value);
+                    const anoSel = parseInt(document.getElementById('filtro-caixa-ano').value);
+                    // ✅ pedMes é 0-indexed, mesSel vem como 1-indexed (01–12)
+                    deveIncluir = ((pedMes + 1) === mesSel && pedAno === anoSel);
                 }
 
                 if (deveIncluir) {
                     let v = parseFloat(p.valor) || 0;
-                    total += v; if (p.pagamento === 'Pix') pix += v; if (p.pagamento === 'Dinheiro') dinheiro += v; if (p.pagamento === 'Cartão') cartao += v;
-                    pedidosFiltrados.push({ ...p, dataObjeto: dataPedidoObjeto });
+                    total += v;
+                    if (p.pagamento === 'Pix') pix += v;
+                    if (p.pagamento === 'Dinheiro') dinheiro += v;
+                    if (p.pagamento === 'Cartão') cartao += v;
+                    pedidosFiltrados.push({ ...p, dataObjeto: dataPedido });
                 }
             });
 
@@ -639,24 +701,34 @@
                 const hora = p.dataObjeto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 const data = p.dataObjeto.toLocaleDateString('pt-BR');
                 const numero = p.numero ? `#${p.numero}` : '#---';
-                html += `<tr><td><small><b>${numero}</b></small></td><td><small>${data}<br>${hora}</small></td><td><mark>${p.atendente}</mark></td><td><b>${p.cliente}</b></td><td><i>${p.detalhes || 'Não informado'}</i></td><td>${p.pagamento}</td><td><b style="color:#16a34a;">R$ ${parseFloat(p.valor).toFixed(2)}</b></td></tr>`;
+                html += `<tr>
+                    <td><small><b>${numero}</b></small></td>
+                    <td><small>${data}<br>${hora}</small></td>
+                    <td><mark>${p.atendente}</mark></td>
+                    <td><b>${p.cliente}</b></td>
+                    <td><i>${p.detalhes || 'Não informado'}</i></td>
+                    <td>${p.pagamento}</td>
+                    <td><b style="color:#16a34a;">R$ ${parseFloat(p.valor).toFixed(2)}</b></td>
+                </tr>`;
             });
             html += `</tbody></table>`;
             container.innerHTML = html;
         }
 
-        // RECEITAS
+        // ==================== RECEITAS ====================
         async function salvarReceita() {
             const nome = document.getElementById('rec-nome').value.trim();
             const texto = document.getElementById('rec-texto').value.trim();
             if(!nome || !texto) return alert('Preencha os campos!');
             await db.collection('receitas').add({ nome, texto });
-            document.getElementById('rec-nome').value = ''; document.getElementById('rec-texto').value = '';
+            document.getElementById('rec-nome').value = '';
+            document.getElementById('rec-texto').value = '';
             carregarReceitas();
         }
 
         async function carregarReceitas() {
-            const container = document.getElementById('lista-receitas'); container.innerHTML = '';
+            const container = document.getElementById('lista-receitas');
+            container.innerHTML = '';
             const snapshot = await db.collection('receitas').get();
             snapshot.forEach(doc => {
                 const r = doc.data();
