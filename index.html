@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Nuvem - Açaí J & M v11.0</title>
+    <title>Painel Nuvem - Açaí J & M v12.0</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -193,26 +193,16 @@
                             <div>
                                 <label>Mês:</label>
                                 <select id="filtro-caixa-mes" onchange="calcularCaixa()">
-                                    <option value="01">Janeiro</option>
-                                    <option value="02">Fevereiro</option>
-                                    <option value="03">Março</option>
-                                    <option value="04">Abril</option>
-                                    <option value="05">Maio</option>
-                                    <option value="06">Junho</option>
-                                    <option value="07">Julho</option>
-                                    <option value="08">Agosto</option>
-                                    <option value="09">Setembro</option>
-                                    <option value="10">Outubro</option>
-                                    <option value="11">Novembro</option>
-                                    <option value="12">Dezembro</option>
+                                    <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                                    <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                                    <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                                    <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
                                 </select>
                             </div>
                             <div>
                                 <label>Ano:</label>
                                 <select id="filtro-caixa-ano" onchange="calcularCaixa()">
-                                    <option value="2025">2025</option>
-                                    <option value="2026" selected>2026</option>
-                                    <option value="2027">2027</option>
+                                    <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
                                 </select>
                             </div>
                         </div>
@@ -256,7 +246,6 @@
     </div>
 
     <script>
-        // Configurações Oficiais do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCIplhwGak1WWC1dbdRaDkSnOmu_QgTi48",
             authDomain: "acaijm.firebaseapp.com",
@@ -275,8 +264,6 @@
         window.onload = function() {
             localStorage.removeItem('db_user_logado');
             usuarioLogado = "";
-            
-            // Coloca a data de hoje por padrão no campo de data do calendário
             const hoje = new Date().toISOString().split('T')[0];
             if(document.getElementById('filtro-caixa-data-especifica')) {
                 document.getElementById('filtro-caixa-data-especifica').value = hoje;
@@ -294,16 +281,21 @@
             }
 
             try {
-                const snapshotInicial = await db.collection('funcionarios').get();
-                if (snapshotInicial.empty && userIn === 'admin' && senhaIn === '513266') {
-                    await db.collection('funcionarios').doc('admin').set({ usuario: 'admin', senha: '513266' });
-                    sucessoLogin(userIn);
-                    return;
-                }
+                // Consulta 100% segura direto no banco de dados da nuvem
+                const snapshot = await db.collection('funcionarios')
+                                         .where('usuario', '==', userIn)
+                                         .where('senha', '==', senhaIn)
+                                         .get();
 
-                const snapshot = await db.collection('funcionarios').where('usuario', '==', userIn).where('senha', '==', senhaIn).get();
-                if (!snapshot.empty) { sucessoLogin(userIn); } else { erroMsg.style.display = 'block'; }
-            } catch (err) { alert("Erro ao conectar com o Firebase. Ative o modo de teste no painel."); }
+                if (!snapshot.empty) {
+                    sucessoLogin(userIn);
+                } else {
+                    erroMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao verificar credenciais na nuvem.");
+            }
         }
 
         function sucessoLogin(user) {
@@ -311,6 +303,7 @@
             usuarioLogado = user;
             document.getElementById('nome-operador-logado').innerText = user.toUpperCase();
             document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('msg-erro-login').style.display = 'none';
             if(user === 'admin') document.getElementById('btn-equipe').style.display = 'flex';
             showSection('clientes');
         }
@@ -332,7 +325,6 @@
             if(sectionId === 'pedidos') resetarFormPedido();
             if(sectionId === 'historico') carregarHistorico();
             if(sectionId === 'caixa') {
-                // Seta filtros para o padrão de hoje ao abrir
                 document.querySelector('input[name="tipo-filtro"][value="hoje"]').checked = true;
                 alternarFiltrosCaixa();
             }
@@ -444,28 +436,20 @@
         async function alterarStatusPedido(id, novoStatus) { await db.collection('pedidos').doc(id).update({ status: novoStatus }); carregarHistorico(); }
         async function excluirPedido(id) { if(confirm("Deletar pedido?")) { await db.collection('pedidos').doc(id).delete(); carregarHistorico(); } }
 
-        // GERENCIAMENTO DO CAIXA COM FILTROS AVANÇADOS (NOVO)
+        // FILTROS CAIXA
         function alternarFiltrosCaixa() {
             const filtroSelecionado = document.querySelector('input[name="tipo-filtro"]:checked').value;
-            
-            // Oculta todos os inputs extras primeiro
             document.getElementById('box-filtro-dia').style.display = 'none';
             document.getElementById('box-filtro-mes').style.display = 'none';
             
-            // Mostra apenas o filtro correto
             if (filtroSelecionado === 'dia') {
                 document.getElementById('box-filtro-dia').style.display = 'block';
             } else if (filtroSelecionado === 'mes') {
                 document.getElementById('box-filtro-mes').style.display = 'flex';
-                
-                // Pré-seleciona o mês atual do sistema para facilitar
                 const dataAtual = new Date();
-                const mesAtualStr = String(dataAtual.getMonth() + 1).padStart(2, '0');
-                document.getElementById('filtro-caixa-mes').value = mesAtualStr;
+                document.getElementById('filtro-caixa-mes').value = String(dataAtual.getMonth() + 1).padStart(2, '0');
                 document.getElementById('filtro-caixa-ano').value = String(dataAtual.getFullYear());
             }
-            
-            // Recalcula o caixa com base no novo filtro ativo
             calcularCaixa();
         }
 
@@ -473,39 +457,26 @@
             const filtro = document.querySelector('input[name="tipo-filtro"]:checked').value;
             let total = 0, pix = 0, dinheiro = 0, cartao = 0;
             
-            // Busca apenas os pedidos concluídos (Finalizados)
             const snapshot = await db.collection('pedidos').where('status', '==', 'Finalizado').get();
-            
             const hojeObjeto = new Date();
-            const hojeStr = hojeObjeto.toLocaleDateString('pt-BR'); // Formato: "dd/mm/aaaa"
+            const hojeStr = hojeObjeto.toLocaleDateString('pt-BR');
 
             snapshot.forEach(doc => {
                 const p = doc.data();
                 const dataPedidoObjeto = new Date(p.data);
                 const dataPedStr = dataPedidoObjeto.toLocaleDateString('pt-BR'); 
-
                 let deveIncluir = false;
 
-                if (filtro === 'tudo') {
-                    deveIncluir = true;
-                } else if (filtro === 'hoje') {
-                    if (dataPedStr === hojeStr) deveIncluir = true;
-                } else if (filtro === 'dia') {
+                if (filtro === 'tudo') { deveIncluir = true; } 
+                else if (filtro === 'hoje') { if (dataPedStr === hojeStr) deveIncluir = true; } 
+                else if (filtro === 'dia') {
                     const dataEscolhidaRaw = document.getElementById('filtro-caixa-data-especifica').value;
                     if (dataEscolhidaRaw) {
-                        // Converte a data do input "aaaa-mm-dd" para o formato local "dd/mm/aaaa"
                         const partes = dataEscolhidaRaw.split('-');
-                        const dataEscolhidaStr = `${partes[2]}/${partes[1]}/${partes[0]}`;
-                        if (dataPedStr === dataEscolhidaStr) deveIncluir = true;
+                        if (dataPedStr === `${partes[2]}/${partes[1]}/${partes[0]}`) deveIncluir = true;
                     }
                 } else if (filtro === 'mes') {
-                    const mesEscolhido = document.getElementById('filtro-caixa-mes').value; // "01", "02"...
-                    const anoEscolhido = document.getElementById('filtro-caixa-ano').value; // "2026"
-                    
-                    const mesPedido = String(dataPedidoObjeto.getMonth() + 1).padStart(2, '0');
-                    const anoPedido = String(dataPedidoObjeto.getFullYear());
-                    
-                    if (mesPedido === mesEscolhido && anoPedido === anoEscolhido) {
+                    if (String(dataPedidoObjeto.getMonth() + 1).padStart(2, '0') === document.getElementById('filtro-caixa-mes').value && String(dataPedidoObjeto.getFullYear()) === document.getElementById('filtro-caixa-ano').value) {
                         deveIncluir = true;
                     }
                 }
@@ -519,7 +490,6 @@
                 }
             });
             
-            // Atualiza os painéis na tela
             document.getElementById('caixa-total').innerText = `R$ ${total.toFixed(2)}`;
             document.getElementById('caixa-pix').innerText = `R$ ${pix.toFixed(2)}`;
             document.getElementById('caixa-dinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
