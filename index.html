@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Açaí J & M</title>
+    <title>Painel Nuvem - Açaí J & M v12.2</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -156,7 +156,7 @@
                 <div id="cliente-selecionado-alerta" class="cliente-selecionado-badge" style="display:none;"></div>
                 <input type="hidden" id="ped-cliente-nome" value="">
                 <div class="form-group"><label>Endereço de Entrega</label><input type="text" id="ped-end"></div>
-                <div class="form-group"><label>Detalhes (Garrafa/Adicionais)</label><input type="text" id="ped-detalhes"></div>
+                <div class="form-group"><label>Detalhes (Garrafa/Adicionais)</label><input type="text" id="ped-detalhes" placeholder="Ex: 1L Tradicional com Leite Condensado"></div>
                 <div class="form-group"><label>Forma de Pagamento</label><select id="ped-pagamento"><option>Pix</option><option>Dinheiro</option><option>Cartão</option></select></div>
                 <div class="form-group"><label>Valor Total (R$)</label><input type="number" step="0.01" id="ped-valor"></div>
                 <button class="btn btn-success" style="max-width:100%;" onclick="salvarPedido()">Confirmar</button>
@@ -167,7 +167,7 @@
             <div class="card">
                 <h3>Histórico de Pedidos</h3>
                 <div class="table-responsive">
-                    <table id="tab-pedidos"><thead><tr><th>Atendente</th><th>Cliente</th><th>Produtos</th><th>Endereço</th><th>Pagamento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table>
+                    <table id="tab-pedidos"><thead><tr><th>ID</th><th>Atendente</th><th>Cliente</th><th>Produtos / Detalhes</th><th>Endereço</th><th>Pagamento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table>
                 </div>
             </div>
         </div>
@@ -261,12 +261,20 @@
 
         let usuarioLogado = "";
 
+        // Roda ao carregar a página e VERIFICA se já existia um login ativo
         window.onload = function() {
-            localStorage.removeItem('db_user_logado');
-            usuarioLogado = "";
+            const salvo = localStorage.getItem('db_user_logado');
+            
             const hoje = new Date().toISOString().split('T')[0];
             if(document.getElementById('filtro-caixa-data-especifica')) {
                 document.getElementById('filtro-caixa-data-especifica').value = hoje;
+            }
+
+            if (salvo) {
+                // Se achou o login guardado, reconecta automaticamente sem pedir senha
+                sucessoLogin(salvo);
+            } else {
+                usuarioLogado = "";
             }
         };
 
@@ -281,7 +289,6 @@
             }
 
             try {
-                // Consulta 100% segura direto no banco de dados da nuvem
                 const snapshot = await db.collection('funcionarios')
                                          .where('usuario', '==', userIn)
                                          .where('senha', '==', senhaIn)
@@ -416,8 +423,11 @@
             const valor = document.getElementById('ped-valor').value;
             if(!cliente || !detalhes || !valor) return alert('Preencha os campos!');
 
+            const dataAtual = new Date();
+            const numIdentificador = String(dataAtual.getHours()).padStart(2, '0') + String(dataAtual.getMinutes()).padStart(2, '0') + String(dataAtual.getSeconds()).padStart(2, '0');
+
             await db.collection('pedidos').add({
-                atendente: usuarioLogado.toUpperCase(), cliente, endereco, detalhes, pagamento, valor: parseFloat(valor), status: "Pendente", data: new Date().toISOString()
+                numero: numIdentificador, atendente: usuarioLogado.toUpperCase(), cliente, endereco, detalhes, pagamento, valor: parseFloat(valor), status: "Pendente", data: dataAtual.toISOString()
             });
             alert('Pedido feito!'); showSection('historico');
         }
@@ -427,9 +437,11 @@
             const snapshot = await db.collection('pedidos').orderBy('data', 'desc').get();
             snapshot.forEach(doc => {
                 const p = doc.data();
+                const numeroPedido = p.numero ? `#${p.numero}` : '#---';
+                const produtosVendidos = p.detalhes ? p.detalhes : 'Não informado';
                 const badgeClass = p.status === 'Pendente' ? 'badge-pendente' : 'badge-finalizado';
                 const botaoStatus = p.status === 'Pendente' ? `<button class="btn-success" style="color:white;" onclick="alterarStatusPedido('${doc.id}', 'Finalizado')">✅ Finalizar</button>` : `<button style="background-color:#cbd5e1;" onclick="alterarStatusPedido('${doc.id}', 'Pendente')">🔄 Reabrir</button>`;
-                tbody.innerHTML += `<tr><td><mark>${p.atendente}</mark></td><td><b>${p.cliente}</b></td><td>${p.detalhes}</td><td>${p.endereco}</td><td>${p.pagamento}</td><td>R$ ${parseFloat(p.valor).toFixed(2)}</td><td><span class="badge ${badgeClass}">${p.status}</span></td><td class="action-btns">${botaoStatus}<button class="btn-danger" style="color:white;" onclick="excluirPedido('${doc.id}')">X</button></td></tr>`;
+                tbody.innerHTML += `<tr><td><small>${numeroPedido}</small></td><td><mark>${p.atendente}</mark></td><td><b>${p.cliente}</b></td><td><i>${produtosVendidos}</i></td><td>${p.endereco}</td><td>${p.pagamento}</td><td><b>R$ ${parseFloat(p.valor).toFixed(2)}</b></td><td><span class="badge ${badgeClass}">${p.status}</span></td><td class="action-btns">${botaoStatus}<button class="btn-danger" style="color:white;" onclick="excluirPedido('${doc.id}')">X</button></td></tr>`;
             });
         }
 
