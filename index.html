@@ -417,20 +417,51 @@
         }
         function atalhoNovoPedido(nome, endereco) { showSection('pedidos'); selecionarClienteParaPedido(nome, endereco); }
 
-        async function salvarPedido() {
-            const cliente = document.getElementById('ped-cliente-nome').value; const endereco = document.getElementById('ped-end').value.trim();
-            const detalhes = document.getElementById('ped-detalhes').value.trim(); const pagamento = document.getElementById('ped-pagamento').value;
-            const valor = document.getElementById('ped-valor').value;
-            if(!cliente || !detalhes || !valor) return alert('Preencha os campos!');
+// Substitua sua função salvarPedido atual por esta:
+async function salvarPedido() {
+    const cliente = document.getElementById('ped-cliente-nome').value;
+    const endereco = document.getElementById('ped-end').value.trim();
+    const detalhes = document.getElementById('ped-detalhes').value.trim();
+    const pagamento = document.getElementById('ped-pagamento').value;
+    const valor = document.getElementById('ped-valor').value;
 
-            const dataAtual = new Date();
-            const numIdentificador = String(dataAtual.getHours()).padStart(2, '0') + String(dataAtual.getMinutes()).padStart(2, '0') + String(dataAtual.getSeconds()).padStart(2, '0');
+    if(!cliente || !detalhes || !valor) return alert('Preencha os campos!');
 
-            await db.collection('pedidos').add({
-                numero: numIdentificador, atendente: usuarioLogado.toUpperCase(), cliente, endereco, detalhes, pagamento, valor: parseFloat(valor), status: "Pendente", data: dataAtual.toISOString()
-            });
-            alert('Pedido feito!'); showSection('historico');
+    try {
+        // 1. Busca o contador atual
+        const refConfig = db.collection('config').doc('contador');
+        const docConfig = await refConfig.get();
+        let novoNumero = 1;
+
+        if (docConfig.exists) {
+            novoNumero = docConfig.data().ultimo_pedido + 1;
         }
+
+        // 2. Formata para 0001, 0002...
+        const numeroFormatado = String(novoNumero).padStart(4, '0');
+
+        // 3. Salva o pedido
+        await db.collection('pedidos').add({
+            numero: numeroFormatado,
+            atendente: usuarioLogado.toUpperCase(),
+            cliente,
+            endereco,
+            detalhes,
+            pagamento,
+            valor: parseFloat(valor),
+            status: "Pendente",
+            data: new Date().toISOString()
+        });
+
+        // 4. Atualiza o contador na nuvem
+        await refConfig.set({ ultimo_pedido: novoNumero });
+
+        alert('Pedido #' + numeroFormatado + ' salvo com sucesso!');
+        showSection('historico');
+    } catch (e) {
+        alert("Erro ao salvar pedido: " + e.message);
+    }
+}
 
         async function carregarHistorico() {
             const tbody = document.querySelector('#tab-pedidos tbody'); tbody.innerHTML = '';
