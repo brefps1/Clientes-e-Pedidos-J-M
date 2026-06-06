@@ -80,6 +80,12 @@
         .cliente-selecionado-badge { background: #ecfdf5; border: 1px solid #059669; padding: 12px; border-radius: 6px; margin-bottom: 15px; color: #065f46; }
         .receita-item { border-bottom: 1px solid #f3e8ff; padding: 18px 0; }
 
+        /* TABELA CAIXA */
+        #caixa-lista-pedidos table { min-width: 500px; }
+        #caixa-lista-pedidos th { background-color: #f8fafc; color: #475569; font-weight: 700; }
+        #caixa-lista-pedidos td { font-size: 13px; }
+        #caixa-lista-pedidos tr:hover { background-color: #faf5ff; }
+
         @media (max-width: 768px) {
             body { flex-direction: column; }
             #sidebar { width: 100%; height: auto; position: fixed; top: 55px; left: 0; padding: 10px; display: flex; overflow-x: auto; z-index: 998; }
@@ -167,7 +173,6 @@
             <div class="card">
                 <h3>Histórico de Pedidos</h3>
                 <input type="text" id="busca-historico-cliente" class="search-box" placeholder="🔎 Digite o nome do cliente para ver o histórico dele..." onkeyup="carregarHistorico()">
-                
                 <div class="table-responsive">
                     <table id="tab-pedidos"><thead><tr><th>ID</th><th>Atendente</th><th>Cliente</th><th>Produtos / Detalhes</th><th>Endereço</th><th>Pagamento</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table>
                 </div>
@@ -184,38 +189,48 @@
                         <label class="radio-option"><input type="radio" name="tipo-filtro" value="mes" onchange="alternarFiltrosCaixa()"> Por Mês</label>
                         <label class="radio-option"><input type="radio" name="tipo-filtro" value="tudo" onchange="alternarFiltrosCaixa()"> Todo o Histórico</label>
                     </div>
-                    
                     <div class="inputs-dinamicos-caixa">
                         <div id="box-filtro-dia" style="display: none;">
                             <label>Escolha o Dia:</label>
                             <input type="date" id="filtro-caixa-data-especifica" onchange="calcularCaixa()">
                         </div>
-                        
-                        <div id="box-filtro-mes" style="display: none; display: flex; gap: 10px;">
-                            <div>
-                                <label>Mês:</label>
-                                <select id="filtro-caixa-mes" onchange="calcularCaixa()">
-                                    <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
-                                    <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
-                                    <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
-                                    <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Ano:</label>
-                                <select id="filtro-caixa-ano" onchange="calcularCaixa()">
-                                    <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
-                                </select>
+                        <div id="box-filtro-mes" style="display: none;">
+                            <div style="display:flex; gap:10px;">
+                                <div>
+                                    <label>Mês:</label>
+                                    <select id="filtro-caixa-mes" onchange="calcularCaixa()">
+                                        <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                                        <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                                        <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                                        <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label>Ano:</label>
+                                    <select id="filtro-caixa-ano" onchange="calcularCaixa()">
+                                        <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="faturamento-box"><h4>Faturamento Total</h4><p id="caixa-total">R$ 0,00</p></div>
                 <div class="grid-metodos">
                     <div class="metodo-box"><h5>Pix</h5><p id="caixa-pix">R$ 0,00</p></div>
                     <div class="metodo-box"><h5>Dinheiro</h5><p id="caixa-dinheiro">R$ 0,00</p></div>
                     <div class="metodo-box"><h5>Cartão</h5><p id="caixa-cartao">R$ 0,00</p></div>
+                </div>
+            </div>
+
+            <!-- NOVO: Card com lista de pedidos do período -->
+            <div class="card">
+                <h3>📋 Pedidos do Período</h3>
+                <div class="table-responsive">
+                    <div id="caixa-lista-pedidos">
+                        <p style="color:#94a3b8; text-align:center; padding:20px;">Selecione um período para ver os pedidos.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -280,27 +295,11 @@
             const userIn = document.getElementById('login-usuario').value.trim().toLowerCase();
             const senhaIn = document.getElementById('login-senha').value.trim();
             const erroMsg = document.getElementById('msg-erro-login');
-
-            if (!userIn || !senhaIn) {
-                alert("Por favor, preencha o usuário e a senha.");
-                return;
-            }
-
+            if (!userIn || !senhaIn) { alert("Por favor, preencha o usuário e a senha."); return; }
             try {
-                const snapshot = await db.collection('funcionarios')
-                                         .where('usuario', '==', userIn)
-                                         .where('senha', '==', senhaIn)
-                                         .get();
-
-                if (!snapshot.empty) {
-                    sucessoLogin(userIn);
-                } else {
-                    erroMsg.style.display = 'block';
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao verificar credenciais na nuvem.");
-            }
+                const snapshot = await db.collection('funcionarios').where('usuario', '==', userIn).where('senha', '==', senhaIn).get();
+                if (!snapshot.empty) { sucessoLogin(userIn); } else { erroMsg.style.display = 'block'; }
+            } catch (err) { console.error(err); alert("Erro ao verificar credenciais na nuvem."); }
         }
 
         function sucessoLogin(user) {
@@ -325,17 +324,10 @@
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('sec-' + sectionId).style.display = 'block';
             document.getElementById('btn-' + sectionId).classList.add('active');
-            
             if(sectionId === 'clientes') carregarClientes();
             if(sectionId === 'pedidos') resetarFormPedido();
-            if(sectionId === 'historico') {
-                document.getElementById('busca-historico-cliente').value = '';
-                carregarHistorico();
-            }
-            if(sectionId === 'caixa') {
-                document.querySelector('input[name="tipo-filtro"][value="hoje"]').checked = true;
-                alternarFiltrosCaixa();
-            }
+            if(sectionId === 'historico') { document.getElementById('busca-historico-cliente').value = ''; carregarHistorico(); }
+            if(sectionId === 'caixa') { document.querySelector('input[name="tipo-filtro"][value="hoje"]').checked = true; alternarFiltrosCaixa(); }
             if(sectionId === 'receitas') carregarReceitas();
             if(sectionId === 'equipe') carregarEquipe();
         }
@@ -418,70 +410,43 @@
         }
         function atalhoNovoPedido(nome, endereco) { showSection('pedidos'); selecionarClienteParaPedido(nome, endereco); }
 
-// Substitua sua função salvarPedido atual por esta:
-async function salvarPedido() {
-    const cliente = document.getElementById('ped-cliente-nome').value;
-    const endereco = document.getElementById('ped-end').value.trim();
-    const detalhes = document.getElementById('ped-detalhes').value.trim();
-    const pagamento = document.getElementById('ped-pagamento').value;
-    const valor = document.getElementById('ped-valor').value;
-
-    if(!cliente || !detalhes || !valor) return alert('Preencha os campos!');
-
-    try {
-        // 1. Busca o contador atual
-        const refConfig = db.collection('config').doc('contador');
-        const docConfig = await refConfig.get();
-        let novoNumero = 1;
-
-        if (docConfig.exists) {
-            novoNumero = docConfig.data().ultimo_pedido + 1;
+        async function salvarPedido() {
+            const cliente = document.getElementById('ped-cliente-nome').value;
+            const endereco = document.getElementById('ped-end').value.trim();
+            const detalhes = document.getElementById('ped-detalhes').value.trim();
+            const pagamento = document.getElementById('ped-pagamento').value;
+            const valor = document.getElementById('ped-valor').value;
+            if(!cliente || !detalhes || !valor) return alert('Preencha os campos!');
+            try {
+                const refConfig = db.collection('config').doc('contador');
+                const docConfig = await refConfig.get();
+                let novoNumero = 1;
+                if (docConfig.exists) { novoNumero = docConfig.data().ultimo_pedido + 1; }
+                const numeroFormatado = String(novoNumero).padStart(4, '0');
+                await db.collection('pedidos').add({
+                    numero: numeroFormatado, atendente: usuarioLogado.toUpperCase(),
+                    cliente, endereco, detalhes, pagamento,
+                    valor: parseFloat(valor), status: "Pendente", data: new Date().toISOString()
+                });
+                await refConfig.set({ ultimo_pedido: novoNumero });
+                alert('Pedido #' + numeroFormatado + ' salvo com sucesso!');
+                showSection('historico');
+            } catch (e) { alert("Erro ao salvar pedido: " + e.message); }
         }
-
-        // 2. Formata para 0001, 0002...
-        const numeroFormatado = String(novoNumero).padStart(4, '0');
-
-        // 3. Salva o pedido
-        await db.collection('pedidos').add({
-            numero: numeroFormatado,
-            atendente: usuarioLogado.toUpperCase(),
-            cliente,
-            endereco,
-            detalhes,
-            pagamento,
-            valor: parseFloat(valor),
-            status: "Pendente",
-            data: new Date().toISOString()
-        });
-
-        // 4. Atualiza o contador na nuvem
-        await refConfig.set({ ultimo_pedido: novoNumero });
-
-        alert('Pedido #' + numeroFormatado + ' salvo com sucesso!');
-        showSection('historico');
-    } catch (e) {
-        alert("Erro ao salvar pedido: " + e.message);
-    }
-}
 
         async function carregarHistorico() {
             const tbody = document.querySelector('#tab-pedidos tbody'); tbody.innerHTML = '';
             const filtroCliente = document.getElementById('busca-historico-cliente').value.toLowerCase();
-            
             const snapshot = await db.collection('pedidos').orderBy('data', 'desc').get();
             snapshot.forEach(doc => {
                 const p = doc.data();
-                
-                // Se tiver filtro de nome e o pedido não for desse cliente, pula para o próximo
-                if(filtroCliente && !p.cliente.toLowerCase().includes(filtroCliente)) {
-                    return; 
-                }
-
+                if(filtroCliente && !p.cliente.toLowerCase().includes(filtroCliente)) return;
                 const numeroPedido = p.numero ? `#${p.numero}` : '#---';
                 const produtosVendidos = p.detalhes ? p.detalhes : 'Não informado';
                 const badgeClass = p.status === 'Pendente' ? 'badge-pendente' : 'badge-finalizado';
-                const botaoStatus = p.status === 'Pendente' ? `<button class="btn-success" style="color:white;" onclick="alterarStatusPedido('${doc.id}', 'Finalizado')">✅ Finalizar</button>` : `<button style="background-color:#cbd5e1;" onclick="alterarStatusPedido('${doc.id}', 'Pendente')">🔄 Reabrir</button>`;
-                
+                const botaoStatus = p.status === 'Pendente'
+                    ? `<button class="btn-success" style="color:white;" onclick="alterarStatusPedido('${doc.id}', 'Finalizado')">✅ Finalizar</button>`
+                    : `<button style="background-color:#cbd5e1;" onclick="alterarStatusPedido('${doc.id}', 'Pendente')">🔄 Reabrir</button>`;
                 tbody.innerHTML += `<tr><td><small>${numeroPedido}</small></td><td><mark>${p.atendente}</mark></td><td><b>${p.cliente}</b></td><td><i>${produtosVendidos}</i></td><td>${p.endereco}</td><td>${p.pagamento}</td><td><b>R$ ${parseFloat(p.valor).toFixed(2)}</b></td><td><span class="badge ${badgeClass}">${p.status}</span></td><td class="action-btns">${botaoStatus}<button class="btn-danger" style="color:white;" onclick="excluirPedido('${doc.id}')">X</button></td></tr>`;
             });
         }
@@ -494,11 +459,10 @@ async function salvarPedido() {
             const filtroSelecionado = document.querySelector('input[name="tipo-filtro"]:checked').value;
             document.getElementById('box-filtro-dia').style.display = 'none';
             document.getElementById('box-filtro-mes').style.display = 'none';
-            
             if (filtroSelecionado === 'dia') {
                 document.getElementById('box-filtro-dia').style.display = 'block';
             } else if (filtroSelecionado === 'mes') {
-                document.getElementById('box-filtro-mes').style.display = 'flex';
+                document.getElementById('box-filtro-mes').style.display = 'block';
                 const dataAtual = new Date();
                 document.getElementById('filtro-caixa-mes').value = String(dataAtual.getMonth() + 1).padStart(2, '0');
                 document.getElementById('filtro-caixa-ano').value = String(dataAtual.getFullYear());
@@ -506,30 +470,40 @@ async function salvarPedido() {
             calcularCaixa();
         }
 
+        // CAIXA - ATUALIZADA COM LISTA DE PEDIDOS
         async function calcularCaixa() {
             const filtro = document.querySelector('input[name="tipo-filtro"]:checked').value;
             let total = 0, pix = 0, dinheiro = 0, cartao = 0;
-            
-            const snapshot = await db.collection('pedidos').where('status', '==', 'Finalizado').get();
-            const hojeObjeto = new Date();
-            const hojeStr = hojeObjeto.toLocaleDateString('pt-BR');
+            const pedidosFiltrados = [];
+
+            const snapshot = await db.collection('pedidos')
+                .where('status', '==', 'Finalizado')
+                .orderBy('data', 'desc')
+                .get();
+
+            const hojeStr = new Date().toLocaleDateString('pt-BR');
 
             snapshot.forEach(doc => {
                 const p = doc.data();
                 const dataPedidoObjeto = new Date(p.data);
-                const dataPedStr = dataPedidoObjeto.toLocaleDateString('pt-BR'); 
+                const dataPedStr = dataPedidoObjeto.toLocaleDateString('pt-BR');
                 let deveIncluir = false;
 
-                if (filtro === 'tudo') { deveIncluir = true; } 
-                else if (filtro === 'hoje') { if (dataPedStr === hojeStr) deveIncluir = true; } 
-                else if (filtro === 'dia') {
+                if (filtro === 'tudo') {
+                    deveIncluir = true;
+                } else if (filtro === 'hoje') {
+                    if (dataPedStr === hojeStr) deveIncluir = true;
+                } else if (filtro === 'dia') {
                     const dataEscolhidaRaw = document.getElementById('filtro-caixa-data-especifica').value;
                     if (dataEscolhidaRaw) {
                         const partes = dataEscolhidaRaw.split('-');
                         if (dataPedStr === `${partes[2]}/${partes[1]}/${partes[0]}`) deveIncluir = true;
                     }
                 } else if (filtro === 'mes') {
-                    if (String(dataPedidoObjeto.getMonth() + 1).padStart(2, '0') === document.getElementById('filtro-caixa-mes').value && String(dataPedidoObjeto.getFullYear()) === document.getElementById('filtro-caixa-ano').value) {
+                    const mesSel = document.getElementById('filtro-caixa-mes').value;
+                    const anoSel = document.getElementById('filtro-caixa-ano').value;
+                    if (String(dataPedidoObjeto.getMonth() + 1).padStart(2, '0') === mesSel &&
+                        String(dataPedidoObjeto.getFullYear()) === anoSel) {
                         deveIncluir = true;
                     }
                 }
@@ -540,13 +514,62 @@ async function salvarPedido() {
                     if (p.pagamento === 'Pix') pix += v;
                     if (p.pagamento === 'Dinheiro') dinheiro += v;
                     if (p.pagamento === 'Cartão') cartao += v;
+                    pedidosFiltrados.push({ ...p, dataObjeto: dataPedidoObjeto });
                 }
             });
-            
+
             document.getElementById('caixa-total').innerText = `R$ ${total.toFixed(2)}`;
             document.getElementById('caixa-pix').innerText = `R$ ${pix.toFixed(2)}`;
             document.getElementById('caixa-dinheiro').innerText = `R$ ${dinheiro.toFixed(2)}`;
             document.getElementById('caixa-cartao').innerText = `R$ ${cartao.toFixed(2)}`;
+
+            // Renderiza lista de pedidos do período
+            const container = document.getElementById('caixa-lista-pedidos');
+
+            if (pedidosFiltrados.length === 0) {
+                container.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:20px;">Nenhum pedido finalizado neste período.</p>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Data / Hora</th>
+                            <th>Atendente</th>
+                            <th>Cliente</th>
+                            <th>Produto / Detalhes</th>
+                            <th>Pagamento</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            pedidosFiltrados.forEach(p => {
+                const hora = p.dataObjeto.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const data = p.dataObjeto.toLocaleDateString('pt-BR');
+                const numero = p.numero ? `#${p.numero}` : '#---';
+                html += `
+                    <tr>
+                        <td><small><b>${numero}</b></small></td>
+                        <td><small>${data}<br>${hora}</small></td>
+                        <td><mark>${p.atendente}</mark></td>
+                        <td><b>${p.cliente}</b></td>
+                        <td><i>${p.detalhes || 'Não informado'}</i></td>
+                        <td>${p.pagamento}</td>
+                        <td><b style="color:#16a34a;">R$ ${parseFloat(p.valor).toFixed(2)}</b></td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
         }
 
         // RECEITAS
