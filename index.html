@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Açaí J & M</title>
+    <title>Painel Nuvem - Açaí J & M</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -149,8 +149,8 @@
 
     <div id="login-screen">
         <div class="login-card">
-            <h2>💜 Açaí J & M</h2>
-            <h3>Acesso ao Painel</h3>
+            <h2>🍇 Açaí J & M</h2>
+            <h3>Painel Nuvem</h3>
             <div class="login-error" id="msg-erro-login">Usuário ou senha incorretos!</div>
             <div class="form-group" style="text-align: left;">
                 <label>Usuário / Operador</label>
@@ -165,7 +165,7 @@
     </div>
 
     <div id="top-header">
-        <h1>💜 Açaí J & M</h1>
+        <h1>🍇 Açaí J & M</h1>
         <div class="user-info-box">
             <span>Operador: <b id="nome-operador-logado">---</b></span>
             <button class="btn-logout" onclick="efetuarLogout()">Sair</button>
@@ -263,11 +263,14 @@
             <div class="card">
                 <h3>Fluxo de Caixa</h3>
                 <div class="filtro-caixa-container">
-                    <div class="radio-group">
-                        <label class="radio-option"><input type="radio" name="tipo-filtro" value="hoje" checked onchange="alternarFiltrosCaixa()"> Hoje</label>
-                        <label class="radio-option"><input type="radio" name="tipo-filtro" value="dia" onchange="alternarFiltrosCaixa()"> Por Dia</label>
-                        <label class="radio-option"><input type="radio" name="tipo-filtro" value="mes" onchange="alternarFiltrosCaixa()"> Por Mês</label>
-                        <label class="radio-option"><input type="radio" name="tipo-filtro" value="tudo" onchange="alternarFiltrosCaixa()"> Tudo</label>
+                    <div class="form-group">
+                        <label>Período</label>
+                        <select id="select-tipo-filtro" onchange="alternarFiltrosCaixa()">
+                            <option value="hoje">Hoje</option>
+                            <option value="dia">Por Dia</option>
+                            <option value="mes">Por Mês</option>
+                            <option value="tudo">Todo o Histórico</option>
+                        </select>
                     </div>
                     <div class="inputs-dinamicos-caixa">
                         <div id="box-filtro-dia" style="display:none;">
@@ -418,7 +421,7 @@
             if(sectionId === 'clientes') carregarClientes();
             if(sectionId === 'pedidos') resetarFormPedido();
             if(sectionId === 'historico') { document.getElementById('busca-historico-cliente').value = ''; carregarHistorico(); }
-            if(sectionId === 'caixa') { document.querySelector('input[name="tipo-filtro"][value="hoje"]').checked = true; alternarFiltrosCaixa(); }
+            if(sectionId === 'caixa') { document.getElementById('select-tipo-filtro').value = 'hoje'; alternarFiltrosCaixa(); }
             if(sectionId === 'receitas') carregarReceitas();
             if(sectionId === 'equipe') carregarEquipe();
 
@@ -569,7 +572,7 @@
 
         // CAIXA
         function alternarFiltrosCaixa() {
-            const filtroSelecionado = document.querySelector('input[name="tipo-filtro"]:checked').value;
+            const filtroSelecionado = document.getElementById('select-tipo-filtro').value;
             document.getElementById('box-filtro-dia').style.display = 'none';
             document.getElementById('box-filtro-mes').style.display = 'none';
             if (filtroSelecionado === 'dia') {
@@ -584,7 +587,7 @@
         }
 
         async function calcularCaixa() {
-            const filtro = document.querySelector('input[name="tipo-filtro"]:checked').value;
+            const filtro = document.getElementById('select-tipo-filtro').value;
             let total = 0, pix = 0, dinheiro = 0, cartao = 0;
             const pedidosFiltrados = [];
 
