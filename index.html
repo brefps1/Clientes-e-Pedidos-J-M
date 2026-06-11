@@ -1127,7 +1127,8 @@
             container.innerHTML = '<div style="padding:16px; color:#94a3b8; text-align:center; font-size:13px;">Nenhum item adicionado ainda.</div>';
             document.getElementById('total-produtos-label').innerText = 'R$ 0,00';
             document.getElementById('ped-valor').value = '';
-            atualizarPagamentos();
+            if(pagamentosAtual.length === 1) pagamentosAtual[0].valor = '';
+            renderizarPagamentos();
             return;
         }
         let total = 0, html = '';
@@ -1149,8 +1150,8 @@
         container.innerHTML = html;
         document.getElementById('total-produtos-label').innerText = `R$ ${total.toFixed(2)}`;
         document.getElementById('ped-valor').value = total.toFixed(2);
-        // Se só tem 1 forma de pagamento e campo vazio, preencher automaticamente
-        if(pagamentosAtual.length === 1 && (pagamentosAtual[0].valor === '' || pagamentosAtual[0].valor === 0)) {
+        // Se só há 1 forma de pagamento, sempre sincronizar com o total
+        if(pagamentosAtual.length === 1) {
             pagamentosAtual[0].valor = total;
             renderizarPagamentos();
         } else {
